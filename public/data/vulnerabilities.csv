@@ -1,0 +1,21 @@
+name,description,host,port,severity,status,assigned_to,comments,timestamp,days_overdue
+SQL Injection in Login Form,User input not properly sanitized in authentication endpoint,192.168.1.10,443,Critical,Open,john.doe@company.com,Requires immediate attention,2024-01-15T10:30:00Z,35
+Cross-Site Scripting (XSS),Reflected XSS vulnerability in search functionality,192.168.1.15,80,High,In Progress,jane.smith@company.com,Patch being developed,2024-01-20T14:22:00Z,28
+Outdated SSL/TLS Configuration,Server using deprecated TLS 1.0 protocol,192.168.1.20,443,Medium,Open,mike.wilson@company.com,Schedule for next maintenance window,2024-01-25T09:15:00Z,23
+Weak Password Policy,Password complexity requirements insufficient,192.168.1.25,22,Medium,Resolved,sarah.jones@company.com,Updated password policy implemented,2024-01-18T16:45:00Z,0
+Information Disclosure,Error messages reveal sensitive system information,192.168.1.30,8080,Low,Open,alex.brown@company.com,Low priority fix needed,2024-02-01T11:20:00Z,17
+Unencrypted Database Connection,Database connections not using SSL encryption,192.168.1.35,3306,High,In Progress,david.lee@company.com,SSL certificates being configured,2024-01-22T13:10:00Z,26
+Directory Traversal Vulnerability,Path traversal attack possible in file upload,192.168.1.40,80,High,Open,emma.davis@company.com,Input validation required,2024-01-28T08:30:00Z,20
+Missing Security Headers,HTTP security headers not configured,192.168.1.45,443,Low,Closed,ryan.clark@company.com,Security headers added,2024-01-30T15:00:00Z,0
+Insecure Direct Object Reference,User can access unauthorized resources,192.168.1.50,8443,Critical,Open,lisa.taylor@company.com,Critical security flaw,2024-02-05T12:45:00Z,13
+Broken Authentication,Session management vulnerabilities detected,192.168.1.55,443,High,Open,kevin.martin@company.com,Session handling needs review,2024-02-03T10:15:00Z,15
+Command Injection,OS command injection in admin panel,192.168.1.10,8080,Critical,In Progress,john.doe@company.com,Urgent fix in development,2024-02-07T14:20:00Z,11
+CSRF Vulnerability,Cross-Site Request Forgery protection missing,192.168.1.60,80,Medium,Open,amy.anderson@company.com,CSRF tokens to be implemented,2024-02-02T09:30:00Z,16
+Privilege Escalation,Local privilege escalation vulnerability,192.168.1.65,22,High,Open,tom.garcia@company.com,System hardening required,2024-01-29T16:40:00Z,19
+Buffer Overflow,Stack buffer overflow in legacy application,192.168.1.70,8000,Critical,Resolved,natalie.rodriguez@company.com,Application patched and updated,2024-01-26T11:55:00Z,0
+Denial of Service,Resource exhaustion vulnerability,192.168.1.75,443,Medium,In Progress,chris.hernandez@company.com,Rate limiting being implemented,2024-02-04T13:25:00Z,14
+XML External Entity (XXE),XXE attack possible in XML parser,192.168.1.80,8080,High,Open,michelle.lopez@company.com,XML parser needs security update,2024-01-31T17:10:00Z,18
+Insecure Cryptographic Storage,Sensitive data stored without encryption,192.168.1.85,443,High,Open,daniel.gonzalez@company.com,Database encryption required,2024-02-06T10:05:00Z,12
+Race Condition,Time-of-check to time-of-use vulnerability,192.168.1.90,22,Low,Closed,jessica.perez@company.com,Code refactored to eliminate race condition,2024-01-27T14:30:00Z,0
+Hardcoded Credentials,Default credentials found in configuration,192.168.1.95,443,Medium,Open,brandon.torres@company.com,Default passwords need changing,2024-02-01T08:45:00Z,17
+Input Validation Bypass,Client-side validation can be bypassed,192.168.1.100,80,Medium,In Progress,ashley.flores@company.com,Server-side validation being added,2024-02-05T15:20:00Z,13
