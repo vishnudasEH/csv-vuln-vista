@@ -1,21 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Database, Network } from 'lucide-react';
+import { Shield, Database, Network, BarChart3, Clock, Users, Presentation } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Navbar = () => {
   const location = useLocation();
 
   const navItems = [
-    {
-      path: '/',
-      label: 'Consolidated Findings',
-      icon: Database,
-    },
-    {
-      path: '/host-based',
-      label: 'Host-Based Vulnerabilities',
-      icon: Network,
-    },
+    { path: '/', label: 'Consolidated Findings', icon: Database },
+    { path: '/host-based', label: 'Host-Based Vulnerabilities', icon: Network },
+    { path: '/analytics', label: 'Analytics Dashboard', icon: BarChart3 },
+    { path: '/sla-tracker', label: 'SLA Tracker', icon: Clock },
+    { path: '/assigned-to', label: 'Team Workload', icon: Users },
+    { path: '/slide-ready', label: 'Slide Ready', icon: Presentation },
   ];
 
   return (
