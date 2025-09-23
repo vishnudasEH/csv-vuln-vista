@@ -72,7 +72,7 @@ const Analytics = () => {
         });
         
         if (weekIndex !== -1) {
-          if (vuln.status === 'Closed' || vuln.status === 'Resolved') {
+          if (vuln.status === 'Fixed') {
             weeks[weekIndex].closed++;
           } else {
             weeks[weekIndex].open++;

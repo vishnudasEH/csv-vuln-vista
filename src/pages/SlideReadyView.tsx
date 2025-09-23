@@ -19,7 +19,7 @@ const SlideReadyView = () => {
 
     // Key metrics for executive summary
     const totalVulns = filteredVulnerabilities.length;
-    const openVulns = filteredVulnerabilities.filter(v => v.status === 'Open' || v.status === 'In Progress').length;
+    const openVulns = filteredVulnerabilities.filter(v => v.status === 'Open' || v.status === 'Triaged').length;
     const criticalVulns = filteredVulnerabilities.filter(v => v.severity === 'Critical').length;
     const overdueVulns = filteredVulnerabilities.filter(v => v.days_overdue > 0).length;
 
@@ -81,7 +81,7 @@ const SlideReadyView = () => {
         
         if (weekIndex !== -1) {
           weeks[weekIndex].discovered++;
-          if (vuln.status === 'Closed' || vuln.status === 'Resolved') {
+          if (vuln.status === 'Fixed') {
             weeks[weekIndex].resolved++;
           }
         }

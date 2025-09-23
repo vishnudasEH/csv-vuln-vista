@@ -7,7 +7,7 @@ import Navbar from "@/components/layout/Navbar";
 import ConsolidatedFindings from "@/pages/ConsolidatedFindings";
 import HostBasedVulnerabilities from "@/pages/HostBasedVulnerabilities";
 import Analytics from "@/pages/Analytics";
-import SlaTracker from "@/pages/SlaTracker";
+
 import AssignedToView from "@/pages/AssignedToView";
 import SlideReadyView from "@/pages/SlideReadyView";
 import NotFound from "./pages/NotFound";
@@ -27,7 +27,7 @@ const App = () => (
               <Route path="/" element={<ConsolidatedFindings />} />
               <Route path="/host-based" element={<HostBasedVulnerabilities />} />
               <Route path="/analytics" element={<Analytics />} />
-              <Route path="/sla-tracker" element={<SlaTracker />} />
+              
               <Route path="/assigned-to" element={<AssignedToView />} />
               <Route path="/slide-ready" element={<SlideReadyView />} />
               <Route path="*" element={<NotFound />} />

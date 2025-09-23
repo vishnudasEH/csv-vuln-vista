@@ -17,8 +17,11 @@ import VulnerabilityFilters from '@/components/filters/VulnerabilityFilters';
 import VulnerabilityTable from '@/components/tables/VulnerabilityTable';
 import SeverityBadge from '@/components/ui/severity-badge';
 import { useVulnerabilities } from '@/hooks/useVulnerabilities';
+import { useToast } from '@/hooks/use-toast';
+import { Vulnerability } from '@/types/vulnerability';
 
 const HostBasedVulnerabilities = () => {
+  const { toast } = useToast();
   const {
     vulnerabilities,
     filteredVulnerabilities,
@@ -30,6 +33,17 @@ const HostBasedVulnerabilities = () => {
   } = useVulnerabilities();
 
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
+
+  const handleBulkUpdate = (selectedIds: string[], updates: Partial<Vulnerability>) => {
+    // Note: This is a static React app limitation
+    // For real Excel sync, you would need a backend API
+    toast({
+      title: "Excel Sync Required",
+      description: `Would update ${selectedIds.length} vulnerabilities. Note: Direct Excel file sync requires a backend server.`,
+      variant: "destructive",
+    });
+    console.log('Bulk update requested:', { selectedIds, updates });
+  };
 
   const toggleHost = (host: string) => {
     const newExpanded = new Set(expandedHosts);
@@ -205,7 +219,10 @@ const HostBasedVulnerabilities = () => {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent>
-                  <VulnerabilityTable vulnerabilities={hostGroup.vulnerabilities} />
+                  <VulnerabilityTable 
+                    vulnerabilities={hostGroup.vulnerabilities} 
+                    onBulkUpdate={handleBulkUpdate}
+                  />
                 </CardContent>
               </CollapsibleContent>
             </Collapsible>
