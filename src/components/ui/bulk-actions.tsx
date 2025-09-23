@@ -51,7 +51,7 @@ const BulkActions = ({
             <SelectValue placeholder="Select assignee" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Unassigned</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
             {availableAssignees.map((assignee) => (
               <SelectItem key={assignee} value={assignee}>
                 {assignee}
