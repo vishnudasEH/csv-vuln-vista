@@ -89,7 +89,7 @@ const ConsolidatedFindings = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Critical</CardTitle>
+            <CardTitle className="text-sm font-medium">critical</CardTitle>
             <AlertTriangle className="h-4 w-4 text-severity-critical" />
           </CardHeader>
           <CardContent>
@@ -99,7 +99,7 @@ const ConsolidatedFindings = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High</CardTitle>
+            <CardTitle className="text-sm font-medium">high</CardTitle>
             <TrendingUp className="h-4 w-4 text-severity-high" />
           </CardHeader>
           <CardContent>
@@ -109,7 +109,7 @@ const ConsolidatedFindings = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open</CardTitle>
+            <CardTitle className="text-sm font-medium">open</CardTitle>
             <AlertTriangle className="h-4 w-4 text-status-open" />
           </CardHeader>
           <CardContent>
