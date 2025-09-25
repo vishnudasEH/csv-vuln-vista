@@ -3,7 +3,7 @@ import { Vulnerability, FilterOptions, HostGroup } from '@/types/vulnerability';
 import { CSVService } from '@/services/csvService';
 import { isWithinInterval, parseISO } from 'date-fns';
 
-export const useVulnerabilities = (csvPath: string = '/data/vulnerabilities.csv') => {
+export const useVulnerabilities = () => {
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,23 +16,23 @@ export const useVulnerabilities = (csvPath: string = '/data/vulnerabilities.csv'
     searchTerm: '',
   });
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await CSVService.loadVulnerabilities(csvPath);
-        setVulnerabilities(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load vulnerabilities');
-        console.error('Error loading vulnerabilities:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await CSVService.loadVulnerabilities();
+      setVulnerabilities(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load vulnerabilities');
+      console.error('Error loading vulnerabilities:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadData();
-  }, [csvPath]);
+  }, []);
 
   const filteredVulnerabilities = useMemo(() => {
     return vulnerabilities.filter((vuln) => {
@@ -136,6 +136,17 @@ export const useVulnerabilities = (csvPath: string = '/data/vulnerabilities.csv'
     });
   }, [filteredVulnerabilities]);
 
+  const updateVulnerabilities = async (updates: Array<{id: string} & Partial<Vulnerability>>) => {
+    try {
+      await CSVService.updateVulnerabilities(updates);
+      // Reload data after successful update
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update vulnerabilities');
+      throw err;
+    }
+  };
+
   return {
     vulnerabilities,
     filteredVulnerabilities,
@@ -144,10 +155,7 @@ export const useVulnerabilities = (csvPath: string = '/data/vulnerabilities.csv'
     setFilters,
     loading,
     error,
-    refresh: () => {
-      setVulnerabilities([]);
-      setLoading(true);
-      setError(null);
-    },
+    updateVulnerabilities,
+    refresh: loadData,
   };
 };

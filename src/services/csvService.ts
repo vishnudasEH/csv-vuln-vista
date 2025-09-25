@@ -1,38 +1,56 @@
 import Papa from 'papaparse';
 import { Vulnerability } from '@/types/vulnerability';
 
+const API_BASE_URL = 'http://localhost:5000/api';
+
 export class CSVService {
-  static async loadVulnerabilities(csvPath: string): Promise<Vulnerability[]> {
+  static async loadVulnerabilities(): Promise<Vulnerability[]> {
     try {
-      const response = await fetch(csvPath);
-      const csvText = await response.text();
+      const response = await fetch(`${API_BASE_URL}/vulnerabilities`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
       
-      return new Promise((resolve, reject) => {
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          transform: (value, field) => {
-            // Convert days_overdue to number
-            if (field === 'days_overdue') {
-              return parseInt(value) || 0;
-            }
-            return value?.trim() || '';
-          },
-          complete: (results) => {
-            if (results.errors.length > 0) {
-              console.warn('CSV parsing warnings:', results.errors);
-            }
-            
-            const vulnerabilities = results.data as Vulnerability[];
-            resolve(vulnerabilities.filter(v => v.name && v.host)); // Filter out invalid rows
-          },
-          error: (error) => {
-            reject(new Error(`CSV parsing failed: ${error.message}`));
-          }
-        });
-      });
+      // Transform and validate data
+      return data.map((vuln: any, index: number) => ({
+        id: vuln.id || `${vuln.name}-${vuln.host}-${index}`, // Generate ID if not present
+        name: vuln.name || '',
+        description: vuln.description || '',
+        host: vuln.host || '',
+        port: vuln.port || '',
+        severity: vuln.severity || 'Low',
+        status: vuln.status || 'Open',
+        assigned_to: vuln.assigned_to || '',
+        comments: vuln.comments || '',
+        timestamp: vuln.timestamp || '',
+        days_overdue: parseInt(vuln.days_overdue) || 0,
+      })).filter(v => v.name && v.host);
     } catch (error) {
-      throw new Error(`Failed to load CSV: ${error}`);
+      throw new Error(`Failed to load vulnerabilities: ${error}`);
+    }
+  }
+
+  static async updateVulnerabilities(updates: Array<{id: string} & Partial<Vulnerability>>): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ updates }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error('Update failed');
+      }
+    } catch (error) {
+      throw new Error(`Failed to update vulnerabilities: ${error}`);
     }
   }
 

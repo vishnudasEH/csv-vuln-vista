@@ -2,23 +2,41 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, Check, User } from 'lucide-react';
-import { VulnerabilityStatus } from '@/types/vulnerability';
+import { Vulnerability, VulnerabilityStatus } from '@/types/vulnerability';
 
 interface BulkActionsProps {
   selectedCount: number;
+  selectedVulnerabilities: Vulnerability[];
   onClearSelection: () => void;
-  onStatusChange: (status: VulnerabilityStatus) => void;
-  onAssigneeChange: (assignee: string) => void;
+  onBulkUpdate: (updates: Array<{id: string} & Partial<Vulnerability>>) => Promise<void>;
   availableAssignees: string[];
 }
 
-const BulkActions = ({
+export const BulkActions = ({
   selectedCount,
+  selectedVulnerabilities,
   onClearSelection,
-  onStatusChange,
-  onAssigneeChange,
-  availableAssignees
+  onBulkUpdate,
+  availableAssignees,
 }: BulkActionsProps) => {
+  const handleStatusChange = async (status: VulnerabilityStatus) => {
+    const updates = selectedVulnerabilities.map(vuln => ({
+      id: vuln.id,
+      status
+    }));
+    await onBulkUpdate(updates);
+    onClearSelection();
+  };
+
+  const handleAssigneeChange = async (assignee: string) => {
+    const updates = selectedVulnerabilities.map(vuln => ({
+      id: vuln.id,
+      assigned_to: assignee === 'unassigned' ? '' : assignee
+    }));
+    await onBulkUpdate(updates);
+    onClearSelection();
+  };
+
   if (selectedCount === 0) return null;
 
   return (
@@ -30,7 +48,7 @@ const BulkActions = ({
       
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">Change Status:</span>
-        <Select onValueChange={onStatusChange}>
+        <Select onValueChange={handleStatusChange}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
@@ -46,7 +64,7 @@ const BulkActions = ({
       <div className="flex items-center gap-2">
         <User className="h-4 w-4" />
         <span className="text-sm font-medium">Assign to:</span>
-        <Select onValueChange={onAssigneeChange}>
+        <Select onValueChange={handleAssigneeChange}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Select assignee" />
           </SelectTrigger>

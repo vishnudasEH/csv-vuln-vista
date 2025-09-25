@@ -23,26 +23,32 @@ import { Vulnerability } from '@/types/vulnerability';
 const HostBasedVulnerabilities = () => {
   const { toast } = useToast();
   const {
+    hostGroups,
     vulnerabilities,
     filteredVulnerabilities,
-    hostGroups,
     filters,
     setFilters,
     loading,
     error,
+    updateVulnerabilities,
   } = useVulnerabilities();
 
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
 
-  const handleBulkUpdate = (selectedIds: string[], updates: Partial<Vulnerability>) => {
-    // Note: This is a static React app limitation
-    // For real Excel sync, you would need a backend API
-    toast({
-      title: "Excel Sync Required",
-      description: `Would update ${selectedIds.length} vulnerabilities. Note: Direct Excel file sync requires a backend server.`,
-      variant: "destructive",
-    });
-    console.log('Bulk update requested:', { selectedIds, updates });
+  const handleBulkUpdate = async (updates: Array<{id: string} & Partial<Vulnerability>>) => {
+    try {
+      await updateVulnerabilities(updates);
+      toast({
+        title: "Success",
+        description: `Updated ${updates.length} vulnerabilities in the master Excel file.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update vulnerabilities. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleHost = (host: string) => {
