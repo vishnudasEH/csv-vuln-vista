@@ -31,7 +31,7 @@ export class CSVService {
     }
   }
 
-  static async updateVulnerabilities(updates: Array<{id: string} & Partial<Vulnerability>>): Promise<void> {
+  static async updateVulnerabilities(updates: Array<{name: string, host: string} & Partial<Vulnerability>>): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/update`, {
         method: 'POST',

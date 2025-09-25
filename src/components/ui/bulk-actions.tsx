@@ -8,7 +8,7 @@ interface BulkActionsProps {
   selectedCount: number;
   selectedVulnerabilities: Vulnerability[];
   onClearSelection: () => void;
-  onBulkUpdate: (updates: Array<{id: string} & Partial<Vulnerability>>) => Promise<void>;
+  onBulkUpdate: (updates: Array<{name: string, host: string} & Partial<Vulnerability>>) => Promise<void>;
   availableAssignees: string[];
 }
 
@@ -21,7 +21,8 @@ export const BulkActions = ({
 }: BulkActionsProps) => {
   const handleStatusChange = async (status: VulnerabilityStatus) => {
     const updates = selectedVulnerabilities.map(vuln => ({
-      id: vuln.id,
+      name: vuln.name,
+      host: vuln.host,
       status
     }));
     await onBulkUpdate(updates);
@@ -30,7 +31,8 @@ export const BulkActions = ({
 
   const handleAssigneeChange = async (assignee: string) => {
     const updates = selectedVulnerabilities.map(vuln => ({
-      id: vuln.id,
+      name: vuln.name,
+      host: vuln.host,
       assigned_to: assignee === 'unassigned' ? '' : assignee
     }));
     await onBulkUpdate(updates);

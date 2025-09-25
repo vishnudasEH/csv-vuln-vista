@@ -35,12 +35,12 @@ const HostBasedVulnerabilities = () => {
 
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
 
-  const handleBulkUpdate = async (updates: Array<{id: string} & Partial<Vulnerability>>) => {
+  const handleBulkUpdate = async (updates: Array<{name: string, host: string} & Partial<Vulnerability>>) => {
     try {
       await updateVulnerabilities(updates);
       toast({
         title: "Success",
-        description: `Updated ${updates.length} vulnerabilities in the master Excel file.`,
+        description: `Updated ${updates.length} vulnerabilities in the master CSV file.`,
       });
     } catch (error) {
       toast({

@@ -136,7 +136,7 @@ export const useVulnerabilities = () => {
     });
   }, [filteredVulnerabilities]);
 
-  const updateVulnerabilities = async (updates: Array<{id: string} & Partial<Vulnerability>>) => {
+  const updateVulnerabilities = async (updates: Array<{name: string, host: string} & Partial<Vulnerability>>) => {
     try {
       await CSVService.updateVulnerabilities(updates);
       // Reload data after successful update
