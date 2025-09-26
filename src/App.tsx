@@ -7,9 +7,8 @@ import Navbar from "@/components/layout/Navbar";
 import ConsolidatedFindings from "@/pages/ConsolidatedFindings";
 import HostBasedVulnerabilities from "@/pages/HostBasedVulnerabilities";
 import Analytics from "@/pages/Analytics";
-
 import AssignedToView from "@/pages/AssignedToView";
-import SlideReadyView from "@/pages/SlideReadyView";
+import VulnerabilityBasedView from "@/pages/VulnerabilityBasedView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,9 +26,8 @@ const App = () => (
               <Route path="/" element={<ConsolidatedFindings />} />
               <Route path="/host-based" element={<HostBasedVulnerabilities />} />
               <Route path="/analytics" element={<Analytics />} />
-              
               <Route path="/assigned-to" element={<AssignedToView />} />
-              <Route path="/slide-ready" element={<SlideReadyView />} />
+              <Route path="/vulnerability-based" element={<VulnerabilityBasedView />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
