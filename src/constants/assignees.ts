@@ -1,4 +1,4 @@
-export const DEFAULT_ASSIGNEES = [
+export const DEFAULT_ASSIGNEES: string[] = [
   'vishnu',
   'gopi', 
   'elan',
@@ -6,6 +6,6 @@ export const DEFAULT_ASSIGNEES = [
   'ruben',
   'kartik',
   'aditya'
-] as const;
+];
 
 export type DefaultAssignee = typeof DEFAULT_ASSIGNEES[number];
