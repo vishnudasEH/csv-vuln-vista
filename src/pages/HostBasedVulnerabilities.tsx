@@ -99,17 +99,18 @@ const HostBasedVulnerabilities = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Host-Based Vulnerabilities</h1>
-        <p className="text-muted-foreground">
-          Vulnerabilities organized by affected hosts for targeted remediation
-        </p>
-      </div>
+    <div className="min-h-screen w-full p-4 md:p-6 lg:p-8">
+      <div className="max-w-full mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Host-Based Vulnerabilities</h1>
+          <p className="text-muted-foreground text-sm md:text-base">
+            Vulnerabilities organized by affected hosts for targeted remediation
+          </p>
+        </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Hosts</CardTitle>
@@ -224,10 +225,11 @@ const HostBasedVulnerabilities = () => {
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent>
+                <CardContent className="px-2 md:px-6">
                   <VulnerabilityTable 
                     vulnerabilities={hostGroup.vulnerabilities} 
                     onBulkUpdate={handleBulkUpdate}
+                    pageSize={50}
                   />
                 </CardContent>
               </CollapsibleContent>
@@ -236,15 +238,16 @@ const HostBasedVulnerabilities = () => {
         ))}
       </div>
 
-      {hostGroups.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <p className="text-muted-foreground">
-              No hosts match the current filters.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+        {hostGroups.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-muted-foreground">
+                No hosts match the current filters.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
