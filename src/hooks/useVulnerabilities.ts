@@ -34,29 +34,40 @@ export const useVulnerabilities = () => {
     loadData();
   }, []);
 
+  // Optimized filtering with early returns and memoized search term processing
   const filteredVulnerabilities = useMemo(() => {
+    const searchTerm = filters.searchTerm?.toLowerCase().trim();
+    const hasFilters = filters.severity.length > 0 || filters.status.length > 0 || 
+                      filters.assigned_to.length > 0 || filters.host.length > 0 ||
+                      filters.dateRange.start || filters.dateRange.end || searchTerm;
+
+    // If no filters, return all vulnerabilities
+    if (!hasFilters) {
+      return vulnerabilities;
+    }
+
     return vulnerabilities.filter((vuln) => {
-      // Severity filter
+      // Quick severity filter
       if (filters.severity.length > 0 && !filters.severity.includes(vuln.severity)) {
         return false;
       }
 
-      // Status filter
+      // Quick status filter
       if (filters.status.length > 0 && !filters.status.includes(vuln.status)) {
         return false;
       }
 
-      // Assigned to filter
+      // Quick assigned to filter
       if (filters.assigned_to.length > 0 && !filters.assigned_to.includes(vuln.assigned_to)) {
         return false;
       }
 
-      // Host filter
+      // Quick host filter
       if (filters.host.length > 0 && !filters.host.includes(vuln.host)) {
         return false;
       }
 
-      // Date range filter
+      // Date range filter - only parse if needed
       if (filters.dateRange.start || filters.dateRange.end) {
         try {
           const vulnDate = parseISO(vuln.timestamp);
@@ -73,15 +84,14 @@ export const useVulnerabilities = () => {
             return false;
           }
         } catch {
-          // Skip invalid dates
           return false;
         }
       }
 
-      // Search term filter (searches across all text fields)
-      if (filters.searchTerm) {
-        const searchTerm = filters.searchTerm.toLowerCase();
-        const searchableFields = [
+      // Search term filter - optimized for performance
+      if (searchTerm) {
+        // Create searchable content once per vulnerability
+        const searchableContent = [
           vuln.name,
           vuln.description,
           vuln.host,
@@ -90,11 +100,9 @@ export const useVulnerabilities = () => {
           vuln.status,
           vuln.assigned_to,
           vuln.comments,
-        ];
+        ].join(' ').toLowerCase();
         
-        if (!searchableFields.some(field => 
-          field && field.toString().toLowerCase().includes(searchTerm)
-        )) {
+        if (!searchableContent.includes(searchTerm)) {
           return false;
         }
       }
