@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Check, User } from 'lucide-react';
+import { X, Check, User, RefreshCw } from 'lucide-react';
 import { Vulnerability, VulnerabilityStatus } from '@/types/vulnerability';
 
 interface BulkActionsProps {
@@ -9,6 +9,7 @@ interface BulkActionsProps {
   selectedVulnerabilities: Vulnerability[];
   onClearSelection: () => void;
   onBulkUpdate: (updates: Array<{name: string, host: string} & Partial<Vulnerability>>) => Promise<void>;
+  onBulkRetest?: () => void;
   availableAssignees: string[];
 }
 
@@ -17,6 +18,7 @@ export const BulkActions = ({
   selectedVulnerabilities,
   onClearSelection,
   onBulkUpdate,
+  onBulkRetest,
   availableAssignees,
 }: BulkActionsProps) => {
   const handleStatusChange = async (status: VulnerabilityStatus) => {
@@ -80,6 +82,17 @@ export const BulkActions = ({
           </SelectContent>
         </Select>
       </div>
+
+      {onBulkRetest && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onBulkRetest}
+        >
+          <RefreshCw className="h-4 w-4 mr-1" />
+          Retest Selected
+        </Button>
+      )}
 
       <Button
         variant="outline"

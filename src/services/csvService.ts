@@ -78,4 +78,62 @@ export class CSVService {
       XLSX.writeFile(workbook, filename);
     });
   }
+
+  static async retestVulnerability(name: string, host: string): Promise<{
+    success: boolean;
+    status: string;
+    findingsCount: number;
+    updatedRows: number;
+    template?: string;
+    debug?: any;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/retest`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, host }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      throw new Error(`Failed to retest vulnerability: ${error}`);
+    }
+  }
+
+  static async bulkRetest(vulnerabilities: Array<{name: string, host: string}>): Promise<Array<{
+    name: string;
+    host: string;
+    success: boolean;
+    status?: string;
+    findingsCount?: number;
+    error?: string;
+  }>> {
+    const results = [];
+    for (const vuln of vulnerabilities) {
+      try {
+        const result = await this.retestVulnerability(vuln.name, vuln.host);
+        results.push({
+          name: vuln.name,
+          host: vuln.host,
+          success: true,
+          status: result.status,
+          findingsCount: result.findingsCount
+        });
+      } catch (error) {
+        results.push({
+          name: vuln.name,
+          host: vuln.host,
+          success: false,
+          error: String(error)
+        });
+      }
+    }
+    return results;
+  }
 }
