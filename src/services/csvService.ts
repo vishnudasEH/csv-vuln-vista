@@ -18,13 +18,14 @@ export class CSVService {
         name: vuln.name || '',
         description: vuln.description || '',
         host: vuln.host || '',
+        owner: vuln.owner || '',
         port: vuln.port || '',
         severity: vuln.severity || 'Low',
         status: vuln.status || 'Open',
         assigned_to: vuln.assigned_to || '',
         comments: vuln.comments || '',
         timestamp: vuln.timestamp || '',
-        days_overdue: parseInt(vuln.days_overdue) || 0,
+        days_overdue: Number(vuln.days_overdue) || 0,
       })).filter(v => v.name && v.host);
     } catch (error) {
       throw new Error(`Failed to load vulnerabilities: ${error}`);
