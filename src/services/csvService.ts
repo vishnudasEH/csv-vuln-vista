@@ -12,21 +12,53 @@ export class CSVService {
       }
       const data = await response.json();
       
-      // Transform and validate data
-      return data.map((vuln: any, index: number) => ({
-        id: vuln.id || `${vuln.name}-${vuln.host}-${index}`, // Generate ID if not present
-        name: vuln.name || '',
-        description: vuln.description || '',
-        host: vuln.host || '',
-        owner: vuln.owner || '',
-        port: vuln.port || '',
-        severity: vuln.severity || 'Low',
-        status: vuln.status || 'Open',
-        assigned_to: vuln.assigned_to || '',
-        comments: vuln.comments || '',
-        timestamp: vuln.timestamp || '',
-        days_overdue: Number(vuln.days_overdue) || 0,
-      })).filter(v => v.name && v.host);
+      // Extract unique IPs from host fields
+      const uniqueIPs = new Set<string>();
+      data.forEach((vuln: any) => {
+        if (vuln.host) {
+          const ip = vuln.host.split(':')[0];
+          uniqueIPs.add(ip);
+        }
+      });
+
+      // Fetch owner data for all unique IPs
+      const ownerMap = new Map<string, string>();
+      await Promise.all(
+        Array.from(uniqueIPs).map(async (ip) => {
+          try {
+            const ownerResponse = await fetch(`${API_BASE_URL}/owner/${ip}`);
+            if (ownerResponse.ok) {
+              const ownerData = await ownerResponse.json();
+              if (ownerData.owner) {
+                ownerMap.set(ip, ownerData.owner);
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch owner for IP ${ip}:`, error);
+          }
+        })
+      );
+      
+      // Transform and validate data with owner enrichment
+      return data.map((vuln: any, index: number) => {
+        const ip = vuln.host ? vuln.host.split(':')[0] : '';
+        const owner = ownerMap.get(ip) || '';
+        
+        return {
+          id: vuln.id || `${vuln.name}-${vuln.host}-${index}`,
+          name: vuln.name || '',
+          description: vuln.description || '',
+          host: vuln.host || '',
+          owner: owner,
+          port: vuln.port || '',
+          severity: vuln.severity || 'Low',
+          status: vuln.status || 'Open',
+          assigned_to: vuln.assigned_to || '',
+          comments: vuln.comments || '',
+          timestamp: vuln.timestamp || '',
+          days_overdue: Number(vuln.days_overdue) || 0,
+        };
+      }).filter(v => v.name && v.host);
     } catch (error) {
       throw new Error(`Failed to load vulnerabilities: ${error}`);
     }
