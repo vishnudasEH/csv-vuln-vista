@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
 import { Vulnerability } from '@/types/vulnerability';
 
-const API_BASE_URL = 'http://10.23.123.40:5000/api';
+const API_BASE_URL = '/api';
 
 export class CSVService {
   static async loadVulnerabilities(): Promise<Vulnerability[]> {
