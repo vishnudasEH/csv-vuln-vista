@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Database, Network, BarChart3, Users, List } from 'lucide-react';
+import { Shield, Database, Network, BarChart3, Users, List, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Navbar = () => {
@@ -11,6 +11,7 @@ const Navbar = () => {
     { path: '/analytics', label: 'Analytics Dashboard', icon: BarChart3 },
     { path: '/assigned-to', label: 'Team Workload', icon: Users },
     { path: '/vulnerability-based', label: 'All Vulnerabilities', icon: List },
+    { path: '/business-owners', label: 'Business Owners', icon: Building2 },
   ];
 
   return (
