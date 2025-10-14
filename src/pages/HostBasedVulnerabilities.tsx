@@ -19,6 +19,16 @@ import SeverityBadge from '@/components/ui/severity-badge';
 import { useVulnerabilities } from '@/hooks/useVulnerabilities';
 import { useToast } from '@/hooks/use-toast';
 import { Vulnerability } from '@/types/vulnerability';
+import { usePagination } from '@/hooks/usePagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const HostBasedVulnerabilities = () => {
   const { toast } = useToast();
@@ -34,6 +44,18 @@ const HostBasedVulnerabilities = () => {
   } = useVulnerabilities();
 
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
+
+  // Pagination for host groups
+  const {
+    paginatedData: paginatedHostGroups,
+    currentPage,
+    totalPages,
+    goToPage,
+    goToNextPage,
+    goToPrevPage,
+    hasNextPage,
+    hasPrevPage,
+  } = usePagination(hostGroups, { pageSize: 10, initialPage: 1 });
 
   const handleBulkUpdate = async (updates: Array<{name: string, host: string} & Partial<Vulnerability>>) => {
     try {
@@ -99,8 +121,8 @@ const HostBasedVulnerabilities = () => {
   };
 
   return (
-    <div className="min-h-screen w-full p-4 md:p-6 lg:p-8">
-      <div className="max-w-full mx-auto space-y-6">
+    <div className="min-h-screen w-full px-4 md:px-6 lg:px-8 py-6">
+      <div className="w-full space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Host-Based Vulnerabilities</h1>
@@ -177,7 +199,7 @@ const HostBasedVulnerabilities = () => {
 
       {/* Host Groups */}
       <div className="space-y-4">
-        {hostGroups.map((hostGroup) => (
+        {paginatedHostGroups.map((hostGroup) => (
           <Card key={hostGroup.host}>
             <Collapsible
               open={expandedHosts.has(hostGroup.host)}
@@ -237,6 +259,61 @@ const HostBasedVulnerabilities = () => {
           </Card>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={goToPrevPage}
+                  className={!hasPrevPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                // Show first page, last page, current page, and pages around current
+                const showPage = page === 1 || 
+                                page === totalPages || 
+                                (page >= currentPage - 1 && page <= currentPage + 1);
+                
+                const showEllipsis = (page === 2 && currentPage > 3) || 
+                                    (page === totalPages - 1 && currentPage < totalPages - 2);
+
+                if (showEllipsis) {
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  );
+                }
+
+                if (!showPage) return null;
+
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => goToPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={goToNextPage}
+                  className={!hasNextPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
         {hostGroups.length === 0 && (
           <Card>
