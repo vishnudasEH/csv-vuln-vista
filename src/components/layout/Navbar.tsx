@@ -1,9 +1,32 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Shield, Database, Network, BarChart3, Users, List, Building2 } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Shield, Database, Network, BarChart3, Users, List, Building2, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  /**
+   * Logout Handler
+   * 
+   * This function handles user logout by:
+   * 1. Removing the JWT token from localStorage
+   * 2. Redirecting the user to the login page
+   * 
+   * This ensures the user can no longer access protected routes
+   */
+  const handleLogout = () => {
+    // Clear the authentication token from localStorage
+    localStorage.removeItem('authToken');
+    console.log('User logged out. Token removed from localStorage.');
+    
+    // Redirect to login page
+    navigate('/login');
+  };
+
+  // Check if user is authenticated (has token)
+  const isAuthenticated = localStorage.getItem('authToken') !== null;
 
   const navItems = [
     { path: '/', label: 'Consolidated Findings', icon: Database },
@@ -44,6 +67,21 @@ const Navbar = () => {
               })}
             </div>
           </div>
+          
+          {/* Logout Button - Only shown when user is authenticated */}
+          {isAuthenticated && (
+            <div className="flex items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </nav>

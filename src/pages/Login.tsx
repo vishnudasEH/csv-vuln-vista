@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, TextField, Button, Typography, Paper, Alert } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -11,6 +12,8 @@ const darkTheme = createTheme({
 });
 
 const Login = () => {
+  const navigate = useNavigate();
+  
   // State to manage form inputs
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -18,6 +21,17 @@ const Login = () => {
   const [error, setError] = useState('');
   // State to manage loading state during API call
   const [loading, setLoading] = useState(false);
+
+  /**
+   * Check if user is already logged in on component mount
+   * If authToken exists, redirect to home page
+   */
+  useEffect(() => {
+    const authToken = localStorage.getItem('authToken');
+    if (authToken) {
+      navigate('/');
+    }
+  }, [navigate]);
 
   // Handle login button click
   const handleLogin = async () => {
@@ -44,11 +58,12 @@ const Login = () => {
       // Check if login was successful
       if (data.status === 'success' && data.token) {
         // Save JWT token to localStorage
+        // This token will be checked by PrivateRoute to allow access to protected pages
         localStorage.setItem('authToken', data.token);
         console.log('Login successful! Token saved to localStorage.');
         
-        // You can redirect to dashboard or another page here
-        // For now, just show success in console
+        // Redirect to home page (dashboard)
+        navigate('/');
       } else {
         // Login failed - display error message from API
         setError(data.message || 'Login failed. Please check your credentials.');
