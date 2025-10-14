@@ -10,6 +10,7 @@ import Analytics from "@/pages/Analytics";
 import AssignedToView from "@/pages/AssignedToView";
 import VulnerabilityBasedView from "@/pages/VulnerabilityBasedView";
 import BusinessOwnersDashboard from "@/pages/BusinessOwnersDashboard";
+import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/assigned-to" element={<AssignedToView />} />
               <Route path="/vulnerability-based" element={<VulnerabilityBasedView />} />
               <Route path="/business-owners" element={<BusinessOwnersDashboard />} />
+              <Route path="/login" element={<Login />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
