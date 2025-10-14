@@ -1,16 +1,12 @@
 import Papa from 'papaparse';
 import { Vulnerability } from '@/types/vulnerability';
-
-const API_BASE_URL = '/api';
+import { apiService } from './apiService';
 
 export class CSVService {
   static async loadVulnerabilities(): Promise<Vulnerability[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/vulnerabilities`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      // Use apiService which automatically adds JWT token
+      const data = await apiService.get<any[]>('/vulnerabilities');
       
       // Transform and validate data
       return data.map((vuln: any, index: number) => ({
@@ -34,19 +30,9 @@ export class CSVService {
 
   static async updateVulnerabilities(updates: Array<{name: string, host: string} & Partial<Vulnerability>>): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ updates }),
-      });
+      // Use apiService which automatically adds JWT token
+      const result = await apiService.post<{ success: boolean }>('/update', { updates });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
       if (!result.success) {
         throw new Error('Update failed');
       }
@@ -89,19 +75,8 @@ export class CSVService {
     debug?: any;
   }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/retest`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, host }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
+      // Use apiService which automatically adds JWT token
+      return await apiService.post('/retest', { name, host });
     } catch (error) {
       throw new Error(`Failed to retest vulnerability: ${error}`);
     }
