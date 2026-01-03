@@ -11,7 +11,8 @@
  * - apiService.post('/api/update', { data })
  */
 
-const API_BASE_URL = '/api';
+// Backend API base URL
+const API_BASE_URL = 'http://10.23.123.40:6000';
 
 class ApiService {
   /**
@@ -70,7 +71,10 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    // If endpoint is a full URL, use it directly; otherwise prepend base URL
+    const url = endpoint.startsWith('http') 
+      ? endpoint 
+      : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     
     const response = await fetch(url, {
       ...options,
