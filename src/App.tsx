@@ -5,12 +5,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import PrivateRoute from "@/components/auth/PrivateRoute";
+import AccountSelection from "@/pages/AccountSelection";
 import ConsolidatedFindings from "@/pages/ConsolidatedFindings";
 import HostBasedVulnerabilities from "@/pages/HostBasedVulnerabilities";
 import Analytics from "@/pages/Analytics";
 import AssignedToView from "@/pages/AssignedToView";
 import VulnerabilityBasedView from "@/pages/VulnerabilityBasedView";
 import BusinessOwnersDashboard from "@/pages/BusinessOwnersDashboard";
+import CloudflareDashboard from "@/pages/CloudflareDashboard";
+import InternalServerDashboard from "@/pages/InternalServerDashboard";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -25,11 +28,17 @@ import NotFound from "./pages/NotFound";
  * 3. On /login page:
  *    - User enters credentials
  *    - On success: JWT token is saved to localStorage
- *    - User is redirected to home page
+ *    - User is redirected to home page (Account Selection)
  * 4. On logout:
  *    - Token is removed from localStorage
  *    - User is redirected to /login
  *    - All protected routes become inaccessible
+ * 
+ * Route Structure:
+ * - / : Account Selection (choose Internal or Cloudflare module)
+ * - /internal : Internal Server module landing
+ * - /cloudflare : Cloudflare vulnerability dashboard
+ * - /host-based, /analytics, etc. : Internal server sub-pages
  */
 
 const queryClient = new QueryClient();
@@ -48,7 +57,30 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               
               {/* Protected routes - require authentication token */}
+              
+              {/* Account Selection - Main landing after login */}
               <Route path="/" element={
+                <PrivateRoute>
+                  <AccountSelection />
+                </PrivateRoute>
+              } />
+              
+              {/* Cloudflare Module */}
+              <Route path="/cloudflare" element={
+                <PrivateRoute>
+                  <CloudflareDashboard />
+                </PrivateRoute>
+              } />
+              
+              {/* Internal Server Module */}
+              <Route path="/internal" element={
+                <PrivateRoute>
+                  <InternalServerDashboard />
+                </PrivateRoute>
+              } />
+              
+              {/* Internal Server Sub-pages */}
+              <Route path="/consolidated" element={
                 <PrivateRoute>
                   <ConsolidatedFindings />
                 </PrivateRoute>
