@@ -20,6 +20,7 @@ import { useVulnerabilities } from '@/hooks/useVulnerabilities';
 import { useToast } from '@/hooks/use-toast';
 import { Vulnerability } from '@/types/vulnerability';
 import { usePagination } from '@/hooks/usePagination';
+import InternalHeader from '@/components/layout/InternalHeader';
 import {
   Pagination,
   PaginationContent,
@@ -93,10 +94,13 @@ const HostBasedVulnerabilities = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading vulnerability data...</p>
+      <div className="min-h-screen w-full">
+        <InternalHeader />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading vulnerability data...</p>
+          </div>
         </div>
       </div>
     );
@@ -104,12 +108,17 @@ const HostBasedVulnerabilities = () => {
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          {error}
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen w-full">
+        <InternalHeader />
+        <div className="px-4 md:px-6 lg:px-8 py-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
     );
   }
 
@@ -121,9 +130,9 @@ const HostBasedVulnerabilities = () => {
   };
 
   return (
-    <div className="min-h-screen w-full px-4 md:px-6 lg:px-8 py-6">
-      <div className="w-full space-y-6">
-        {/* Header */}
+    <div className="min-h-screen w-full">
+      <InternalHeader />
+      <div className="px-4 md:px-6 lg:px-8 py-6 space-y-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Host-Based Vulnerabilities</h1>
           <p className="text-muted-foreground text-sm md:text-base">

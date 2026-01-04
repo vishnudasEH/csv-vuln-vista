@@ -13,33 +13,12 @@ import AssignedToView from "@/pages/AssignedToView";
 import VulnerabilityBasedView from "@/pages/VulnerabilityBasedView";
 import BusinessOwnersDashboard from "@/pages/BusinessOwnersDashboard";
 import CloudflareDashboard from "@/pages/CloudflareDashboard";
-import InternalServerDashboard from "@/pages/InternalServerDashboard";
+import CloudflareTrends from "@/pages/CloudflareTrends";
+import CloudflareReports from "@/pages/CloudflareReports";
+import CloudflareSettings from "@/pages/CloudflareSettings";
+import CloudflareVulnerabilitiesPage from "@/pages/CloudflareVulnerabilitiesPage";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
-
-/**
- * Authentication Flow Overview:
- * 
- * 1. User lands on any route
- * 2. If route is protected (wrapped in PrivateRoute):
- *    - PrivateRoute checks for 'authToken' in localStorage
- *    - If token exists: User can access the route
- *    - If token missing: User is redirected to /login
- * 3. On /login page:
- *    - User enters credentials
- *    - On success: JWT token is saved to localStorage
- *    - User is redirected to home page (Account Selection)
- * 4. On logout:
- *    - Token is removed from localStorage
- *    - User is redirected to /login
- *    - All protected routes become inaccessible
- * 
- * Route Structure:
- * - / : Account Selection (choose Internal or Cloudflare module)
- * - /internal : Internal Server module landing
- * - /cloudflare : Cloudflare vulnerability dashboard
- * - /host-based, /analytics, etc. : Internal server sub-pages
- */
 
 const queryClient = new QueryClient();
 
@@ -53,65 +32,26 @@ const App = () => (
           <Navbar />
           <main className="w-full">
             <Routes>
-              {/* Public route - accessible without authentication */}
               <Route path="/login" element={<Login />} />
               
-              {/* Protected routes - require authentication token */}
+              {/* Account Selection */}
+              <Route path="/" element={<PrivateRoute><AccountSelection /></PrivateRoute>} />
               
-              {/* Account Selection - Main landing after login */}
-              <Route path="/" element={
-                <PrivateRoute>
-                  <AccountSelection />
-                </PrivateRoute>
-              } />
+              {/* Internal Server Module - Consolidated Findings is default */}
+              <Route path="/internal" element={<PrivateRoute><ConsolidatedFindings /></PrivateRoute>} />
+              <Route path="/internal/host-based" element={<PrivateRoute><HostBasedVulnerabilities /></PrivateRoute>} />
+              <Route path="/internal/vulnerability-based" element={<PrivateRoute><VulnerabilityBasedView /></PrivateRoute>} />
+              <Route path="/internal/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
+              <Route path="/internal/assigned-to" element={<PrivateRoute><AssignedToView /></PrivateRoute>} />
+              <Route path="/internal/business-owners" element={<PrivateRoute><BusinessOwnersDashboard /></PrivateRoute>} />
               
               {/* Cloudflare Module */}
-              <Route path="/cloudflare" element={
-                <PrivateRoute>
-                  <CloudflareDashboard />
-                </PrivateRoute>
-              } />
+              <Route path="/cloudflare" element={<PrivateRoute><CloudflareDashboard /></PrivateRoute>} />
+              <Route path="/cloudflare/vulnerabilities" element={<PrivateRoute><CloudflareVulnerabilitiesPage /></PrivateRoute>} />
+              <Route path="/cloudflare/trends" element={<PrivateRoute><CloudflareTrends /></PrivateRoute>} />
+              <Route path="/cloudflare/reports" element={<PrivateRoute><CloudflareReports /></PrivateRoute>} />
+              <Route path="/cloudflare/settings" element={<PrivateRoute><CloudflareSettings /></PrivateRoute>} />
               
-              {/* Internal Server Module */}
-              <Route path="/internal" element={
-                <PrivateRoute>
-                  <InternalServerDashboard />
-                </PrivateRoute>
-              } />
-              
-              {/* Internal Server Sub-pages */}
-              <Route path="/consolidated" element={
-                <PrivateRoute>
-                  <ConsolidatedFindings />
-                </PrivateRoute>
-              } />
-              <Route path="/host-based" element={
-                <PrivateRoute>
-                  <HostBasedVulnerabilities />
-                </PrivateRoute>
-              } />
-              <Route path="/analytics" element={
-                <PrivateRoute>
-                  <Analytics />
-                </PrivateRoute>
-              } />
-              <Route path="/assigned-to" element={
-                <PrivateRoute>
-                  <AssignedToView />
-                </PrivateRoute>
-              } />
-              <Route path="/vulnerability-based" element={
-                <PrivateRoute>
-                  <VulnerabilityBasedView />
-                </PrivateRoute>
-              } />
-              <Route path="/business-owners" element={
-                <PrivateRoute>
-                  <BusinessOwnersDashboard />
-                </PrivateRoute>
-              } />
-              
-              {/* 404 Not Found */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

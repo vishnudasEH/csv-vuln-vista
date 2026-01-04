@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, AlertTriangle, CheckCircle2, Shield, Cloud } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle2, Shield, Cloud, RotateCcw, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,9 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { cloudflareService, CloudflareVulnerability, CloudflareSummary, CloudflareFilters } from '@/services/cloudflareService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePagination } from '@/hooks/usePagination';
+import CloudflareHeader from '@/components/layout/CloudflareHeader';
+import { CloudflareExportDialog } from '@/components/cloudflare/CloudflareExportDialog';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 /**
  * Cloudflare Dashboard
@@ -18,13 +30,14 @@ import { Skeleton } from '@/components/ui/skeleton';
  * Full-featured vulnerability management dashboard for Cloudflare module.
  * Features:
  * - Summary cards showing total, fixed, and severity breakdown
- * - Filterable vulnerability table
+ * - Filterable vulnerability table with pagination (10 per page)
+ * - Multi-select with checkboxes
+ * - Bulk actions (status update, retest)
+ * - Export functionality (CSV, Excel)
  * - Inline editing for Status and Notes
- * - Real-time API integration
  */
 
 const CloudflareDashboard = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   // Data state
@@ -36,6 +49,9 @@ const CloudflareDashboard = () => {
   // Filter state
   const [filters, setFilters] = useState<CloudflareFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Selection state
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
   // Editing state
   const [editingRow, setEditingRow] = useState<string | null>(null);
@@ -55,6 +71,7 @@ const CloudflareDashboard = () => {
       
       setVulnerabilities(vulnData);
       setSummary(summaryData);
+      setSelectedRows(new Set()); // Clear selection on data refresh
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
       setError(message);
@@ -72,9 +89,58 @@ const CloudflareDashboard = () => {
     fetchData();
   }, [fetchData]);
 
+  // Filter vulnerabilities by search term (client-side)
+  const filteredVulnerabilities = vulnerabilities.filter(v => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      v.domain.toLowerCase().includes(search) ||
+      v.vulnerability_name.toLowerCase().includes(search)
+    );
+  });
+
+  // Pagination (10 items per page)
+  const {
+    paginatedData: paginatedVulnerabilities,
+    currentPage,
+    totalPages,
+    goToPage,
+    goToNextPage,
+    goToPrevPage,
+    hasNextPage,
+    hasPrevPage,
+  } = usePagination(filteredVulnerabilities, { pageSize: 10, initialPage: 1 });
+
+  // Row key helper
+  const getRowKey = (vuln: CloudflareVulnerability) => `${vuln.domain}-${vuln.vulnerability_name}`;
+
+  // Selection handlers
+  const toggleRowSelection = (vuln: CloudflareVulnerability) => {
+    const key = getRowKey(vuln);
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(key)) {
+      newSelected.delete(key);
+    } else {
+      newSelected.add(key);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRows.size === paginatedVulnerabilities.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(paginatedVulnerabilities.map(getRowKey)));
+    }
+  };
+
+  const getSelectedVulnerabilities = () => {
+    return filteredVulnerabilities.filter(v => selectedRows.has(getRowKey(v)));
+  };
+
   // Handle status change
   const handleStatusChange = async (vuln: CloudflareVulnerability, newStatus: string) => {
-    const rowKey = `${vuln.domain}-${vuln.vulnerability_name}`;
+    const rowKey = getRowKey(vuln);
     setSavingRow(rowKey);
     
     try {
@@ -84,7 +150,6 @@ const CloudflareDashboard = () => {
         { status: newStatus }
       );
       
-      // Update local state
       setVulnerabilities(prev => 
         prev.map(v => 
           v.domain === vuln.domain && v.vulnerability_name === vuln.vulnerability_name
@@ -98,7 +163,6 @@ const CloudflareDashboard = () => {
         description: 'Status updated successfully',
       });
       
-      // Refresh summary
       const newSummary = await cloudflareService.getSummary();
       setSummary(newSummary);
     } catch (err) {
@@ -114,7 +178,7 @@ const CloudflareDashboard = () => {
 
   // Handle notes save
   const handleNotesSave = async (vuln: CloudflareVulnerability) => {
-    const rowKey = `${vuln.domain}-${vuln.vulnerability_name}`;
+    const rowKey = getRowKey(vuln);
     setSavingRow(rowKey);
     
     try {
@@ -124,7 +188,6 @@ const CloudflareDashboard = () => {
         { notes: editingNotes }
       );
       
-      // Update local state
       setVulnerabilities(prev => 
         prev.map(v => 
           v.domain === vuln.domain && v.vulnerability_name === vuln.vulnerability_name
@@ -151,15 +214,53 @@ const CloudflareDashboard = () => {
     }
   };
 
-  // Filter vulnerabilities by search term (client-side)
-  const filteredVulnerabilities = vulnerabilities.filter(v => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      v.domain.toLowerCase().includes(search) ||
-      v.vulnerability_name.toLowerCase().includes(search)
-    );
-  });
+  // Bulk status update
+  const handleBulkStatusUpdate = async (newStatus: string) => {
+    const selected = getSelectedVulnerabilities();
+    if (selected.length === 0) return;
+
+    try {
+      const updates = selected.map(v => ({
+        Domain: v.domain,
+        'Vulnerability Name': v.vulnerability_name,
+        Status: newStatus,
+      }));
+
+      await cloudflareService.updateVulnerabilities(updates);
+      
+      setVulnerabilities(prev => 
+        prev.map(v => 
+          selectedRows.has(getRowKey(v))
+            ? { ...v, status: newStatus as CloudflareVulnerability['status'] }
+            : v
+        )
+      );
+      
+      toast({
+        title: 'Success',
+        description: `Updated ${selected.length} vulnerabilities`,
+      });
+      
+      setSelectedRows(new Set());
+      const newSummary = await cloudflareService.getSummary();
+      setSummary(newSummary);
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update vulnerabilities',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Retest handler (placeholder)
+  const handleRetest = () => {
+    const selected = getSelectedVulnerabilities();
+    toast({
+      title: 'Retest Initiated',
+      description: `Retest requested for ${selected.length} vulnerabilities. Backend integration pending.`,
+    });
+  };
 
   // Severity badge colors
   const getSeverityColor = (severity: string) => {
@@ -186,33 +287,30 @@ const CloudflareDashboard = () => {
   const uniqueDomains = [...new Set(vulnerabilities.map(v => v.domain))];
 
   return (
-    <div className="min-h-screen w-full px-4 md:px-6 lg:px-8 py-6">
-      <div className="w-full space-y-6">
+    <div className="min-h-screen w-full">
+      <CloudflareHeader />
+      <div className="px-4 md:px-6 lg:px-8 py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <Cloud className="h-6 w-6 text-orange-500" />
-                <h1 className="text-2xl md:text-3xl font-bold">Cloudflare Vulnerabilities</h1>
-              </div>
-              <p className="text-muted-foreground mt-1">
-                Manage DNS and security vulnerabilities from Cloudflare scans
-              </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <Cloud className="h-6 w-6 text-orange-500" />
+              <h1 className="text-2xl md:text-3xl font-bold">Cloudflare Dashboard</h1>
             </div>
+            <p className="text-muted-foreground mt-1">
+              Manage DNS and security vulnerabilities from Cloudflare scans
+            </p>
           </div>
-          <Button onClick={fetchData} disabled={loading} variant="outline">
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <CloudflareExportDialog 
+              vulnerabilities={filteredVulnerabilities}
+              selectedVulnerabilities={getSelectedVulnerabilities()}
+            />
+            <Button onClick={fetchData} disabled={loading} variant="outline">
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -366,6 +464,37 @@ const CloudflareDashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Bulk Actions Bar */}
+        {selectedRows.size > 0 && (
+          <Card className="border-primary bg-primary/5">
+            <CardContent className="py-3">
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="font-medium">{selectedRows.size} selected</span>
+                
+                <Select onValueChange={handleBulkStatusUpdate}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Bulk Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Open">Set Open</SelectItem>
+                    <SelectItem value="Fixed">Set Fixed</SelectItem>
+                    <SelectItem value="Accepted Risk">Set Accepted Risk</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button variant="outline" size="sm" onClick={handleRetest}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Retest Selected
+                </Button>
+
+                <Button variant="ghost" size="sm" onClick={() => setSelectedRows(new Set())}>
+                  Clear Selection
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Error State */}
         {error && (
           <Card className="border-destructive">
@@ -391,6 +520,12 @@ const CloudflareDashboard = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={selectedRows.size === paginatedVulnerabilities.length && paginatedVulnerabilities.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead className="min-w-[150px]">Domain</TableHead>
                     <TableHead className="min-w-[200px]">Vulnerability Name</TableHead>
                     <TableHead className="min-w-[100px]">Severity</TableHead>
@@ -406,27 +541,34 @@ const CloudflareDashboard = () => {
                   {loading ? (
                     Array(5).fill(0).map((_, i) => (
                       <TableRow key={i}>
-                        {Array(9).fill(0).map((_, j) => (
+                        {Array(10).fill(0).map((_, j) => (
                           <TableCell key={j}>
                             <Skeleton className="h-6 w-full" />
                           </TableCell>
                         ))}
                       </TableRow>
                     ))
-                  ) : filteredVulnerabilities.length === 0 ? (
+                  ) : paginatedVulnerabilities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                         No vulnerabilities found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredVulnerabilities.map((vuln) => {
-                      const rowKey = `${vuln.domain}-${vuln.vulnerability_name}`;
+                    paginatedVulnerabilities.map((vuln) => {
+                      const rowKey = getRowKey(vuln);
                       const isEditing = editingRow === rowKey;
                       const isSaving = savingRow === rowKey;
+                      const isSelected = selectedRows.has(rowKey);
 
                       return (
-                        <TableRow key={rowKey} className={isSaving ? 'opacity-50' : ''}>
+                        <TableRow key={rowKey} className={`${isSaving ? 'opacity-50' : ''} ${isSelected ? 'bg-primary/5' : ''}`}>
+                          <TableCell>
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleRowSelection(vuln)}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{vuln.domain}</TableCell>
                           <TableCell>{vuln.vulnerability_name}</TableCell>
                           <TableCell>
@@ -510,6 +652,60 @@ const CloudflareDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={goToPrevPage}
+                    className={!hasPrevPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  const showPage = page === 1 || 
+                                  page === totalPages || 
+                                  (page >= currentPage - 1 && page <= currentPage + 1);
+                  
+                  const showEllipsis = (page === 2 && currentPage > 3) || 
+                                      (page === totalPages - 1 && currentPage < totalPages - 2);
+
+                  if (showEllipsis) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    );
+                  }
+
+                  if (!showPage) return null;
+
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => goToPage(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={goToNextPage}
+                    className={!hasNextPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
     </div>
   );
