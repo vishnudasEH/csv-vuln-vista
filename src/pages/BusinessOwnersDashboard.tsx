@@ -7,6 +7,7 @@ import { OwnerFilters } from '@/components/business-owners/OwnerFilters';
 import { OwnerCharts } from '@/components/business-owners/OwnerCharts';
 import { OwnerTable } from '@/components/business-owners/OwnerTable';
 import { OwnerInsights } from '@/components/business-owners/OwnerInsights';
+import InternalHeader from '@/components/layout/InternalHeader';
 
 export interface OwnerFiltersState {
   searchTerm: string;
@@ -31,7 +32,6 @@ const BusinessOwnersDashboard = () => {
   const ownerData = useMemo(() => {
     let vulnerabilities = [...filteredVulnerabilities];
 
-    // Apply filters
     if (filters.searchTerm) {
       const search = filters.searchTerm.toLowerCase();
       vulnerabilities = vulnerabilities.filter(v => 
@@ -52,7 +52,6 @@ const BusinessOwnersDashboard = () => {
       );
     }
 
-    // Group by owner
     const ownerMap = new Map<string, any>();
     
     vulnerabilities.forEach(vuln => {
@@ -112,41 +111,52 @@ const BusinessOwnersDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen w-full">
+        <InternalHeader />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive">Error Loading Data</CardTitle>
-          <CardDescription>{error}</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="min-h-screen w-full">
+        <InternalHeader />
+        <div className="px-4 md:px-6 lg:px-8 py-6">
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">Error Loading Data</CardTitle>
+              <CardDescription>{error}</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Business Owners Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Track vulnerability metrics organized by business owners
-        </p>
+    <div className="min-h-screen w-full">
+      <InternalHeader />
+      <div className="px-4 md:px-6 lg:px-8 py-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Business Owners Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Track vulnerability metrics organized by business owners
+          </p>
+        </div>
+
+        <OwnerSummaryCards summary={summary} />
+
+        <OwnerFilters filters={filters} setFilters={setFilters} />
+
+        <OwnerCharts ownerData={ownerData} />
+
+        <OwnerTable ownerData={ownerData} />
+
+        <OwnerInsights ownerData={ownerData} />
       </div>
-
-      <OwnerSummaryCards summary={summary} />
-
-      <OwnerFilters filters={filters} setFilters={setFilters} />
-
-      <OwnerCharts ownerData={ownerData} />
-
-      <OwnerTable ownerData={ownerData} />
-
-      <OwnerInsights ownerData={ownerData} />
     </div>
   );
 };
