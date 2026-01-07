@@ -1,4 +1,10 @@
 import { apiService } from './apiService';
+import { 
+  CloudflareVulnerability, 
+  CloudflareSummary, 
+  CloudflareFilters,
+  CloudflareRetestResult 
+} from '@/types/cloudflare';
 
 /**
  * Cloudflare API Service
@@ -10,41 +16,13 @@ import { apiService } from './apiService';
  * - GET /api/cloudflare/vulnerabilities - Fetch vulnerabilities with filters
  * - POST /api/cloudflare/update - Update vulnerability status/notes
  * - GET /api/cloudflare/summary - Get summary statistics
+ * - POST /api/cloudflare/retest - Retest vulnerability
  */
 
 const CLOUDFLARE_BASE = '/api/cloudflare';
 
-// Types for Cloudflare vulnerabilities
-export interface CloudflareVulnerability {
-  domain: string;
-  vulnerability_name: string;
-  severity: 'Critical' | 'High' | 'Medium' | 'Low';
-  status: 'Open' | 'Fixed' | 'Accepted Risk';
-  first_observed: string;
-  last_observed: string;
-  aging_days: number;
-  business_owner: string;
-  notes: string;
-}
-
-export interface CloudflareSummary {
-  total_vulnerabilities: number;
-  fixed_vulnerabilities: number;
-  severity_counts: {
-    critical: number;
-    high: number;
-    medium: number;
-    low: number;
-  };
-}
-
-export interface CloudflareFilters {
-  domain?: string;
-  severity?: string;
-  status?: string;
-  owner?: string;
-  search?: string;
-}
+// Re-export types for convenience
+export type { CloudflareVulnerability, CloudflareSummary, CloudflareFilters, CloudflareRetestResult };
 
 export interface VulnerabilityUpdate {
   Domain: string;
@@ -110,6 +88,57 @@ class CloudflareService {
     if (updates.notes !== undefined) update.Notes = updates.notes;
     
     return this.updateVulnerabilities([update]);
+  }
+
+  /**
+   * Retest a single vulnerability
+   * POST /api/cloudflare/retest
+   */
+  async retestVulnerability(
+    domain: string,
+    vulnerabilityName: string
+  ): Promise<CloudflareRetestResult> {
+    try {
+      const result = await apiService.post<{
+        success: boolean;
+        status: string;
+        findingsCount: number;
+      }>(`${CLOUDFLARE_BASE}/retest`, {
+        domain,
+        vulnerability_name: vulnerabilityName
+      });
+      
+      return {
+        domain,
+        vulnerability_name: vulnerabilityName,
+        success: true,
+        status: result.status,
+        findingsCount: result.findingsCount
+      };
+    } catch (error) {
+      return {
+        domain,
+        vulnerability_name: vulnerabilityName,
+        success: false,
+        error: String(error)
+      };
+    }
+  }
+
+  /**
+   * Bulk retest vulnerabilities
+   */
+  async bulkRetest(
+    vulnerabilities: Array<{ domain: string; vulnerability_name: string }>
+  ): Promise<CloudflareRetestResult[]> {
+    const results: CloudflareRetestResult[] = [];
+    
+    for (const vuln of vulnerabilities) {
+      const result = await this.retestVulnerability(vuln.domain, vuln.vulnerability_name);
+      results.push(result);
+    }
+    
+    return results;
   }
 }
 

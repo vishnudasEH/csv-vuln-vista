@@ -1,19 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, AlertTriangle, CheckCircle2, Shield, Cloud, RotateCcw, Download } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle2, Shield, Cloud, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { cloudflareService, CloudflareVulnerability, CloudflareSummary, CloudflareFilters } from '@/services/cloudflareService';
+import { cloudflareService, CloudflareVulnerability, CloudflareSummary, CloudflareFilters, CloudflareRetestResult } from '@/services/cloudflareService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePagination } from '@/hooks/usePagination';
 import CloudflareHeader from '@/components/layout/CloudflareHeader';
 import { CloudflareExportDialog } from '@/components/cloudflare/CloudflareExportDialog';
+import { CloudflareVulnerabilityDialog } from '@/components/cloudflare/CloudflareVulnerabilityDialog';
+import { CloudflareRetestDialog } from '@/components/cloudflare/CloudflareRetestDialog';
 import {
   Pagination,
   PaginationContent,
@@ -34,7 +35,8 @@ import {
  * - Multi-select with checkboxes
  * - Bulk actions (status update, retest)
  * - Export functionality (CSV, Excel)
- * - Inline editing for Status and Notes
+ * - Individual vulnerability popup with all details
+ * - Retest functionality (single and bulk)
  */
 
 const CloudflareDashboard = () => {
@@ -53,10 +55,37 @@ const CloudflareDashboard = () => {
   // Selection state
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
-  // Editing state
-  const [editingRow, setEditingRow] = useState<string | null>(null);
-  const [editingNotes, setEditingNotes] = useState<string>('');
-  const [savingRow, setSavingRow] = useState<string | null>(null);
+  // Retest state
+  const [retestDialogOpen, setRetestDialogOpen] = useState(false);
+  const [retestResults, setRetestResults] = useState<CloudflareRetestResult[]>([]);
+  const [isRetesting, setIsRetesting] = useState(false);
+  const [retestTotal, setRetestTotal] = useState(0);
+  const [retestCompleted, setRetestCompleted] = useState(0);
+
+  // Format timestamp from backend
+  const formatDate = (date: string | number | null | undefined): string => {
+    if (!date) return 'N/A';
+    try {
+      if (typeof date === 'number') {
+        return new Date(date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+      const parsed = new Date(date);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+      return String(date);
+    } catch {
+      return String(date);
+    }
+  };
 
   // Fetch data from API
   const fetchData = useCallback(async () => {
@@ -71,7 +100,7 @@ const CloudflareDashboard = () => {
       
       setVulnerabilities(vulnData);
       setSummary(summaryData);
-      setSelectedRows(new Set()); // Clear selection on data refresh
+      setSelectedRows(new Set());
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
       setError(message);
@@ -138,80 +167,91 @@ const CloudflareDashboard = () => {
     return filteredVulnerabilities.filter(v => selectedRows.has(getRowKey(v)));
   };
 
-  // Handle status change
-  const handleStatusChange = async (vuln: CloudflareVulnerability, newStatus: string) => {
-    const rowKey = getRowKey(vuln);
-    setSavingRow(rowKey);
+  // Handle vulnerability update (from dialog)
+  const handleVulnerabilityUpdate = async (
+    domain: string,
+    vulnName: string,
+    updates: { status?: string; notes?: string }
+  ) => {
+    await cloudflareService.updateSingleVulnerability(domain, vulnName, updates);
     
-    try {
-      await cloudflareService.updateSingleVulnerability(
-        vuln.domain,
-        vuln.vulnerability_name,
-        { status: newStatus }
-      );
-      
-      setVulnerabilities(prev => 
-        prev.map(v => 
+    setVulnerabilities(prev => 
+      prev.map(v => 
+        v.domain === domain && v.vulnerability_name === vulnName
+          ? { 
+              ...v, 
+              status: updates.status ? updates.status as CloudflareVulnerability['status'] : v.status,
+              notes: updates.notes !== undefined ? updates.notes : v.notes
+            }
+          : v
+      )
+    );
+    
+    const newSummary = await cloudflareService.getSummary();
+    setSummary(newSummary);
+  };
+
+  // Handle single retest
+  const handleSingleRetest = async (vuln: CloudflareVulnerability) => {
+    setRetestResults([]);
+    setRetestTotal(1);
+    setRetestCompleted(0);
+    setIsRetesting(true);
+    setRetestDialogOpen(true);
+
+    const result = await cloudflareService.retestVulnerability(vuln.domain, vuln.vulnerability_name);
+    setRetestResults([result]);
+    setRetestCompleted(1);
+    setIsRetesting(false);
+
+    // Update vulnerability status based on result
+    if (result.success && result.status) {
+      setVulnerabilities(prev =>
+        prev.map(v =>
           v.domain === vuln.domain && v.vulnerability_name === vuln.vulnerability_name
-            ? { ...v, status: newStatus as CloudflareVulnerability['status'] }
+            ? { ...v, status: result.status as CloudflareVulnerability['status'] }
             : v
         )
       );
-      
-      toast({
-        title: 'Success',
-        description: 'Status updated successfully',
-      });
-      
       const newSummary = await cloudflareService.getSummary();
       setSummary(newSummary);
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update status',
-        variant: 'destructive',
-      });
-    } finally {
-      setSavingRow(null);
     }
   };
 
-  // Handle notes save
-  const handleNotesSave = async (vuln: CloudflareVulnerability) => {
-    const rowKey = getRowKey(vuln);
-    setSavingRow(rowKey);
-    
-    try {
-      await cloudflareService.updateSingleVulnerability(
-        vuln.domain,
-        vuln.vulnerability_name,
-        { notes: editingNotes }
-      );
-      
-      setVulnerabilities(prev => 
-        prev.map(v => 
-          v.domain === vuln.domain && v.vulnerability_name === vuln.vulnerability_name
-            ? { ...v, notes: editingNotes }
-            : v
-        )
-      );
-      
-      setEditingRow(null);
-      setEditingNotes('');
-      
-      toast({
-        title: 'Success',
-        description: 'Notes updated successfully',
-      });
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update notes',
-        variant: 'destructive',
-      });
-    } finally {
-      setSavingRow(null);
+  // Handle bulk retest
+  const handleBulkRetest = async () => {
+    const selected = getSelectedVulnerabilities();
+    if (selected.length === 0) return;
+
+    setRetestResults([]);
+    setRetestTotal(selected.length);
+    setRetestCompleted(0);
+    setIsRetesting(true);
+    setRetestDialogOpen(true);
+
+    const results: CloudflareRetestResult[] = [];
+    for (const vuln of selected) {
+      const result = await cloudflareService.retestVulnerability(vuln.domain, vuln.vulnerability_name);
+      results.push(result);
+      setRetestResults([...results]);
+      setRetestCompleted(results.length);
+
+      // Update vulnerability status based on result
+      if (result.success && result.status) {
+        setVulnerabilities(prev =>
+          prev.map(v =>
+            v.domain === vuln.domain && v.vulnerability_name === vuln.vulnerability_name
+              ? { ...v, status: result.status as CloudflareVulnerability['status'] }
+              : v
+          )
+        );
+      }
     }
+
+    setIsRetesting(false);
+    setSelectedRows(new Set());
+    const newSummary = await cloudflareService.getSummary();
+    setSummary(newSummary);
   };
 
   // Bulk status update
@@ -253,33 +293,25 @@ const CloudflareDashboard = () => {
     }
   };
 
-  // Retest handler (placeholder)
-  const handleRetest = () => {
-    const selected = getSelectedVulnerabilities();
-    toast({
-      title: 'Retest Initiated',
-      description: `Retest requested for ${selected.length} vulnerabilities. Backend integration pending.`,
-    });
-  };
-
-  // Severity badge colors
-  const getSeverityColor = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case 'critical': return 'bg-red-500 hover:bg-red-600 text-white';
-      case 'high': return 'bg-orange-500 hover:bg-orange-600 text-white';
-      case 'medium': return 'bg-yellow-500 hover:bg-yellow-600 text-black';
-      case 'low': return 'bg-green-500 hover:bg-green-600 text-white';
-      default: return 'bg-gray-500 hover:bg-gray-600 text-white';
+  // Severity badge with semantic colors
+  const getSeverityStyle = (severity: string) => {
+    switch (severity?.toLowerCase()) {
+      case 'critical': return 'bg-severity-critical/15 text-severity-critical border-severity-critical/30 hover:bg-severity-critical/25';
+      case 'high': return 'bg-severity-high/15 text-severity-high border-severity-high/30 hover:bg-severity-high/25';
+      case 'medium': return 'bg-severity-medium/15 text-severity-medium border-severity-medium/30 hover:bg-severity-medium/25';
+      case 'low': return 'bg-severity-low/15 text-severity-low border-severity-low/30 hover:bg-severity-low/25';
+      default: return 'bg-muted text-muted-foreground border-muted';
     }
   };
 
-  // Status badge colors
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'fixed': return 'bg-green-100 text-green-800 border-green-300';
-      case 'open': return 'bg-red-100 text-red-800 border-red-300';
-      case 'accepted risk': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+  // Status badge with semantic colors
+  const getStatusStyle = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'fixed': return 'bg-status-fixed/15 text-status-fixed border-status-fixed/30';
+      case 'open': return 'bg-status-open/15 text-status-open border-status-open/30';
+      case 'work in progress': return 'bg-status-progress/15 text-status-progress border-status-progress/30';
+      case 'accepted risk': return 'bg-status-accepted-risk/15 text-status-accepted-risk border-status-accepted-risk/30';
+      default: return 'bg-muted text-muted-foreground border-muted';
     }
   };
 
@@ -343,48 +375,48 @@ const CloudflareDashboard = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 text-status-fixed" />
                     Fixed
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-green-600">{summary?.fixed_vulnerabilities || 0}</p>
+                  <p className="text-3xl font-bold text-status-fixed">{summary?.fixed_vulnerabilities || 0}</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-red-500">
+              <Card className="border-l-4 border-l-severity-critical">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Critical</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-red-600">{summary?.severity_counts?.critical || 0}</p>
+                  <p className="text-3xl font-bold text-severity-critical">{summary?.severity_counts?.critical || 0}</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-orange-500">
+              <Card className="border-l-4 border-l-severity-high">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">High</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-orange-600">{summary?.severity_counts?.high || 0}</p>
+                  <p className="text-3xl font-bold text-severity-high">{summary?.severity_counts?.high || 0}</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-yellow-500">
+              <Card className="border-l-4 border-l-severity-medium">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Medium</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-yellow-600">{summary?.severity_counts?.medium || 0}</p>
+                  <p className="text-3xl font-bold text-severity-medium">{summary?.severity_counts?.medium || 0}</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-green-500">
+              <Card className="border-l-4 border-l-severity-low">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Low</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-green-600">{summary?.severity_counts?.low || 0}</p>
+                  <p className="text-3xl font-bold text-severity-low">{summary?.severity_counts?.low || 0}</p>
                 </CardContent>
               </Card>
             </>
@@ -447,6 +479,7 @@ const CloudflareDashboard = () => {
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="Open">Open</SelectItem>
                   <SelectItem value="Fixed">Fixed</SelectItem>
+                  <SelectItem value="Work in Progress">Work in Progress</SelectItem>
                   <SelectItem value="Accepted Risk">Accepted Risk</SelectItem>
                 </SelectContent>
               </Select>
@@ -472,17 +505,18 @@ const CloudflareDashboard = () => {
                 <span className="font-medium">{selectedRows.size} selected</span>
                 
                 <Select onValueChange={handleBulkStatusUpdate}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Bulk Status" />
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Bulk Status Update" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Open">Set Open</SelectItem>
                     <SelectItem value="Fixed">Set Fixed</SelectItem>
+                    <SelectItem value="Work in Progress">Set Work in Progress</SelectItem>
                     <SelectItem value="Accepted Risk">Set Accepted Risk</SelectItem>
                   </SelectContent>
                 </Select>
 
-                <Button variant="outline" size="sm" onClick={handleRetest}>
+                <Button variant="outline" size="sm" onClick={handleBulkRetest}>
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Retest Selected
                 </Button>
@@ -532,9 +566,9 @@ const CloudflareDashboard = () => {
                     <TableHead className="min-w-[140px]">Status</TableHead>
                     <TableHead className="min-w-[120px]">First Observed</TableHead>
                     <TableHead className="min-w-[120px]">Last Observed</TableHead>
-                    <TableHead className="min-w-[80px]">Aging (Days)</TableHead>
+                    <TableHead className="min-w-[80px]">Aging</TableHead>
                     <TableHead className="min-w-[150px]">Business Owner</TableHead>
-                    <TableHead className="min-w-[250px]">Notes</TableHead>
+                    <TableHead className="w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -557,91 +591,77 @@ const CloudflareDashboard = () => {
                   ) : (
                     paginatedVulnerabilities.map((vuln) => {
                       const rowKey = getRowKey(vuln);
-                      const isEditing = editingRow === rowKey;
-                      const isSaving = savingRow === rowKey;
                       const isSelected = selectedRows.has(rowKey);
 
                       return (
-                        <TableRow key={rowKey} className={`${isSaving ? 'opacity-50' : ''} ${isSelected ? 'bg-primary/5' : ''}`}>
-                          <TableCell>
+                        <TableRow 
+                          key={rowKey} 
+                          className={`${isSelected ? 'bg-primary/5' : ''} hover:bg-muted/50`}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => toggleRowSelection(vuln)}
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{vuln.domain}</TableCell>
-                          <TableCell>{vuln.vulnerability_name}</TableCell>
                           <TableCell>
-                            <Badge className={getSeverityColor(vuln.severity)}>
-                              {vuln.severity}
+                            <CloudflareVulnerabilityDialog
+                              vulnerability={vuln}
+                              onUpdate={handleVulnerabilityUpdate}
+                              onRetest={handleSingleRetest}
+                            >
+                              <span className="font-medium cursor-pointer hover:text-primary hover:underline">
+                                {vuln.domain}
+                              </span>
+                            </CloudflareVulnerabilityDialog>
+                          </TableCell>
+                          <TableCell>
+                            <CloudflareVulnerabilityDialog
+                              vulnerability={vuln}
+                              onUpdate={handleVulnerabilityUpdate}
+                              onRetest={handleSingleRetest}
+                            >
+                              <span className="cursor-pointer hover:text-primary hover:underline">
+                                {vuln.vulnerability_name}
+                              </span>
+                            </CloudflareVulnerabilityDialog>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={`font-medium border ${getSeverityStyle(vuln.severity)}`}
+                            >
+                              {vuln.severity || 'Unknown'}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Select
-                              value={vuln.status}
-                              onValueChange={(value) => handleStatusChange(vuln, value)}
-                              disabled={isSaving}
+                            <Badge 
+                              variant="outline" 
+                              className={`font-medium border ${getStatusStyle(vuln.status)}`}
                             >
-                              <SelectTrigger className={`w-[130px] ${getStatusColor(vuln.status)}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Open">Open</SelectItem>
-                                <SelectItem value="Fixed">Fixed</SelectItem>
-                                <SelectItem value="Accepted Risk">Accepted Risk</SelectItem>
-                              </SelectContent>
-                            </Select>
+                              {vuln.status}
+                            </Badge>
                           </TableCell>
-                          <TableCell>{vuln.first_observed}</TableCell>
-                          <TableCell>{vuln.last_observed}</TableCell>
+                          <TableCell className="text-sm">{formatDate(vuln.first_observed)}</TableCell>
+                          <TableCell className="text-sm">{formatDate(vuln.last_observed)}</TableCell>
                           <TableCell className="text-center">
                             <Badge variant={vuln.aging_days > 30 ? 'destructive' : 'secondary'}>
-                              {vuln.aging_days}
+                              {vuln.aging_days || 0}
                             </Badge>
                           </TableCell>
-                          <TableCell>{vuln.business_owner}</TableCell>
+                          <TableCell className="text-sm">
+                            {vuln.business_owner || <span className="text-muted-foreground italic">N/A</span>}
+                          </TableCell>
                           <TableCell>
-                            {isEditing ? (
-                              <div className="flex items-center gap-2">
-                                <Textarea
-                                  value={editingNotes}
-                                  onChange={(e) => setEditingNotes(e.target.value)}
-                                  className="min-h-[60px] text-sm"
-                                  disabled={isSaving}
-                                />
-                                <div className="flex flex-col gap-1">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleNotesSave(vuln)}
-                                    disabled={isSaving}
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingRow(null);
-                                      setEditingNotes('');
-                                    }}
-                                    disabled={isSaving}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                className="cursor-pointer hover:bg-muted p-2 rounded min-h-[40px] text-sm"
-                                onClick={() => {
-                                  setEditingRow(rowKey);
-                                  setEditingNotes(vuln.notes || '');
-                                }}
-                                title="Click to edit notes"
-                              >
-                                {vuln.notes || <span className="text-muted-foreground italic">Click to add notes...</span>}
-                              </div>
-                            )}
+                            <CloudflareVulnerabilityDialog
+                              vulnerability={vuln}
+                              onUpdate={handleVulnerabilityUpdate}
+                              onRetest={handleSingleRetest}
+                            >
+                              <Button variant="ghost" size="sm">
+                                View
+                              </Button>
+                            </CloudflareVulnerabilityDialog>
                           </TableCell>
                         </TableRow>
                       );
@@ -707,6 +727,16 @@ const CloudflareDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Retest Dialog */}
+      <CloudflareRetestDialog
+        open={retestDialogOpen}
+        onOpenChange={setRetestDialogOpen}
+        results={retestResults}
+        isRunning={isRetesting}
+        total={retestTotal}
+        completed={retestCompleted}
+      />
     </div>
   );
 };

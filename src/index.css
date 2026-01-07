@@ -46,11 +46,14 @@ All colors MUST be HSL.
     --severity-low: 120 60% 50%;
     --severity-info: 217 91% 60%;
     
-    /* Status Colors */
-    --status-open: 0 85% 65%;
-    --status-in-progress: 45 100% 60%;
-    --status-resolved: 120 60% 50%;
-    --status-closed: 210 8% 50%;
+    /* Status Colors - Improved visibility */
+    --status-open: 0 72% 55%;
+    --status-in-progress: 45 93% 47%;
+    --status-progress: 45 93% 47%;
+    --status-resolved: 142 70% 45%;
+    --status-fixed: 142 70% 45%;
+    --status-closed: 220 10% 50%;
+    --status-accepted-risk: 38 92% 50%;
     
     /* Accent Colors */
     --cyber-accent: 217 91% 60%;
