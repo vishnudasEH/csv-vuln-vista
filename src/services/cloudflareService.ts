@@ -3,7 +3,9 @@ import {
   CloudflareVulnerability, 
   CloudflareSummary, 
   CloudflareFilters,
-  CloudflareRetestResult 
+  CloudflareRetestResult,
+  CloudflareSeverity,
+  CloudflareStatus 
 } from '@/types/cloudflare';
 
 /**
@@ -12,11 +14,8 @@ import {
  * Handles all API interactions for the Cloudflare vulnerability module.
  * Base URL: http://10.23.123.40:6000
  * 
- * Endpoints:
- * - GET /api/cloudflare/vulnerabilities - Fetch vulnerabilities with filters
- * - POST /api/cloudflare/update - Update vulnerability status/notes
- * - GET /api/cloudflare/summary - Get summary statistics
- * - POST /api/cloudflare/retest - Retest vulnerability
+ * Backend returns Title Case fields, frontend uses snake_case.
+ * This service handles the transformation.
  */
 
 const CLOUDFLARE_BASE = '/api/cloudflare';
@@ -30,6 +29,87 @@ export interface VulnerabilityUpdate {
   Status?: string;
   Notes?: string;
 }
+
+// Backend response interface (Title Case keys)
+interface BackendVulnerability {
+  'Domain': string;
+  'Vulnerability Name': string;
+  'Severity': string;
+  'Status': string;
+  'First Observed': string | number;
+  'Last Observed': string | number;
+  'Aging (Days)': number;
+  'Business Owner': string | null;
+  'Notes': string | null;
+  'Description'?: string | null;
+  'Curl Command'?: string | null;
+}
+
+interface BackendSummary {
+  total_vulnerabilities: number;
+  fixed_vulnerabilities: number;
+  by_severity: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    info?: number;
+    unknown?: number;
+  };
+}
+
+// Transform backend response to frontend format
+const transformVulnerability = (v: BackendVulnerability): CloudflareVulnerability => {
+  // Normalize severity to proper case
+  const normalizeSeverity = (sev: string): CloudflareSeverity => {
+    const lower = (sev || 'unknown').toLowerCase();
+    switch (lower) {
+      case 'critical': return 'Critical';
+      case 'high': return 'High';
+      case 'medium': return 'Medium';
+      case 'low': return 'Low';
+      default: return 'Unknown';
+    }
+  };
+
+  // Normalize status to proper case
+  const normalizeStatus = (status: string): CloudflareStatus => {
+    const lower = (status || 'open').toLowerCase();
+    switch (lower) {
+      case 'fixed': return 'Fixed';
+      case 'open': return 'Open';
+      case 'accepted risk': return 'Accepted Risk';
+      case 'work in progress': return 'Work in Progress';
+      default: return 'Open';
+    }
+  };
+
+  return {
+    domain: v['Domain'] || '',
+    vulnerability_name: v['Vulnerability Name'] || '',
+    severity: normalizeSeverity(v['Severity']),
+    status: normalizeStatus(v['Status']),
+    first_observed: v['First Observed'],
+    last_observed: v['Last Observed'],
+    aging_days: v['Aging (Days)'] || 0,
+    business_owner: v['Business Owner'],
+    notes: v['Notes'],
+    description: v['Description'],
+    curl_command: v['Curl Command'],
+  };
+};
+
+// Transform summary response
+const transformSummary = (s: BackendSummary): CloudflareSummary => ({
+  total_vulnerabilities: s.total_vulnerabilities || 0,
+  fixed_vulnerabilities: s.fixed_vulnerabilities || 0,
+  severity_counts: {
+    critical: s.by_severity?.critical || 0,
+    high: s.by_severity?.high || 0,
+    medium: s.by_severity?.medium || 0,
+    low: s.by_severity?.low || 0,
+  },
+});
 
 class CloudflareService {
   /**
@@ -47,7 +127,8 @@ class CloudflareService {
     const queryString = params.toString();
     const endpoint = `${CLOUDFLARE_BASE}/vulnerabilities${queryString ? `?${queryString}` : ''}`;
     
-    return apiService.get<CloudflareVulnerability[]>(endpoint);
+    const rawData = await apiService.get<BackendVulnerability[]>(endpoint);
+    return rawData.map(transformVulnerability);
   }
 
   /**
@@ -55,7 +136,8 @@ class CloudflareService {
    * GET /api/cloudflare/summary
    */
   async getSummary(): Promise<CloudflareSummary> {
-    return apiService.get<CloudflareSummary>(`${CLOUDFLARE_BASE}/summary`);
+    const rawData = await apiService.get<BackendSummary>(`${CLOUDFLARE_BASE}/summary`);
+    return transformSummary(rawData);
   }
 
   /**
