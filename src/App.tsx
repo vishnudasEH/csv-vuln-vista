@@ -17,6 +17,7 @@ import CloudflareTrends from "@/pages/CloudflareTrends";
 import CloudflareReports from "@/pages/CloudflareReports";
 import CloudflareSettings from "@/pages/CloudflareSettings";
 import CloudflareVulnerabilitiesPage from "@/pages/CloudflareVulnerabilitiesPage";
+import CloudflareInsights from "@/pages/CloudflareInsights";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
               {/* Cloudflare Module */}
               <Route path="/cloudflare" element={<PrivateRoute><CloudflareDashboard /></PrivateRoute>} />
               <Route path="/cloudflare/vulnerabilities" element={<PrivateRoute><CloudflareVulnerabilitiesPage /></PrivateRoute>} />
+              <Route path="/cloudflare/insights" element={<PrivateRoute><CloudflareInsights /></PrivateRoute>} />
               <Route path="/cloudflare/trends" element={<PrivateRoute><CloudflareTrends /></PrivateRoute>} />
               <Route path="/cloudflare/reports" element={<PrivateRoute><CloudflareReports /></PrivateRoute>} />
               <Route path="/cloudflare/settings" element={<PrivateRoute><CloudflareSettings /></PrivateRoute>} />

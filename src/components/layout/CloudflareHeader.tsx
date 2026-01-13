@@ -16,6 +16,7 @@ interface NavTab {
 const navTabs: NavTab[] = [
   { path: '/cloudflare', label: 'Dashboard' },
   { path: '/cloudflare/vulnerabilities', label: 'Vulnerabilities' },
+  { path: '/cloudflare/insights', label: 'Insights' },
   { path: '/cloudflare/trends', label: 'Trends' },
   { path: '/cloudflare/reports', label: 'Reports' },
   { path: '/cloudflare/settings', label: 'Settings' },

@@ -345,83 +345,92 @@ const CloudflareDashboard = () => {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-          {loading ? (
-            Array(6).fill(0).map((_, i) => (
-              <Card key={i}>
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-16" />
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
-                    Total
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{summary?.total_vulnerabilities || 0}</p>
-                </CardContent>
-              </Card>
+        {/* Summary Cards - OPEN Findings Only */}
+        {(() => {
+          // Calculate open-only counts from vulnerabilities
+          const openVulnerabilities = vulnerabilities.filter(
+            v => v.status?.toLowerCase() === 'open'
+          );
+          const openCritical = openVulnerabilities.filter(
+            v => v.severity?.toLowerCase() === 'critical'
+          ).length;
+          const openHigh = openVulnerabilities.filter(
+            v => v.severity?.toLowerCase() === 'high'
+          ).length;
+          const openMedium = openVulnerabilities.filter(
+            v => v.severity?.toLowerCase() === 'medium'
+          ).length;
+          const openLow = openVulnerabilities.filter(
+            v => v.severity?.toLowerCase() === 'low'
+          ).length;
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-status-fixed" />
-                    Fixed
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-status-fixed">{summary?.fixed_vulnerabilities || 0}</p>
-                </CardContent>
-              </Card>
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {loading ? (
+                Array(5).fill(0).map((_, i) => (
+                  <Card key={i}>
+                    <CardHeader className="pb-2">
+                      <Skeleton className="h-4 w-24" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-8 w-16" />
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Total Open Findings
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold">{openVulnerabilities.length}</p>
+                    </CardContent>
+                  </Card>
 
-              <Card className="border-l-4 border-l-severity-critical">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Critical</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-severity-critical">{summary?.severity_counts?.critical || 0}</p>
-                </CardContent>
-              </Card>
+                  <Card className="border-l-4 border-l-severity-critical">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Open Critical</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold text-severity-critical">{openCritical}</p>
+                    </CardContent>
+                  </Card>
 
-              <Card className="border-l-4 border-l-severity-high">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">High</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-severity-high">{summary?.severity_counts?.high || 0}</p>
-                </CardContent>
-              </Card>
+                  <Card className="border-l-4 border-l-severity-high">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Open High</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold text-severity-high">{openHigh}</p>
+                    </CardContent>
+                  </Card>
 
-              <Card className="border-l-4 border-l-severity-medium">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Medium</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-severity-medium">{summary?.severity_counts?.medium || 0}</p>
-                </CardContent>
-              </Card>
+                  <Card className="border-l-4 border-l-severity-medium">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Open Medium</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold text-severity-medium">{openMedium}</p>
+                    </CardContent>
+                  </Card>
 
-              <Card className="border-l-4 border-l-severity-low">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Low</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-severity-low">{summary?.severity_counts?.low || 0}</p>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
+                  <Card className="border-l-4 border-l-severity-low">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Open Low</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold text-severity-low">{openLow}</p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Filters */}
         <Card>
